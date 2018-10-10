@@ -16,42 +16,38 @@ Project to start playing with golang.
 # Example
 
 ```go
-
 package main
+
 import (
 	"fmt"
-
-	"net/http"
+	"log"
+	"time"
 
 	"github.com/kingnido/basichttprouter"
+	"net/http"
 )
 
 func main() {
-	r := basichttprouter.NewRouter()
+	m := basichttprouter.NewStaticMuxer()
 
-	r.Handle("/api/posts/:pid/comments", hello)
-	r.Handle("/api/comments/:cid", commentHandler)
-	r.Handle("/api/posts/:pid/comments", addCommentHandler)
-	r.Handle("/static", hello)
-	r.Handle("/", hello)
+	m.Handle("", dumpContext)
+	m.Handle("/", dumpContext)
+	m.Handle("/api", dumpContext)
+	m.Handle("/api/go/", dumpContext)
+	m.Handle("/static/", dumpContext)
 
-	fmt.Print(r)
-
-	http.ListenAndServe(":3000", r)
+	http.ListenAndServe(":3000", timeLogger(m))
 }
 
-var hello = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprint(w, "hello")
+var dumpContext = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, r.Context())
 })
 
-var commentHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprint(w, r.Context().Value("cid"))
-})
-
-var addCommentHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprint(w, r.Context().Value("pid"))
-})
+func timeLogger(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		h.ServeHTTP(w, r)
+		log.Println("Elapsed:", time.Since(start))
+	})
+}
 ```
