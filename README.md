@@ -4,14 +4,15 @@ Project to start playing with golang.
 
 # Done
 
-- Basic static routing
+- Static routing
+- Parametric routing
 
 # To do
 
-- Testing
-- Parameters in the URL
-- Setting handlers by method
-- Sanitize URL
+- Docs
+- Tests
+- Middleware support
+- Methods support
 
 # Example
 
@@ -23,23 +24,24 @@ import (
 	"log"
 	"time"
 
-	"github.com/kingnido/basichttprouter"
 	"net/http"
+
+	"github.com/kingnido/basichttprouter"
 )
 
 func main() {
-	m := basichttprouter.NewStaticMuxer()
+	m := basichttprouter.NewRouter()
 
-	m.Handle("", dumpContext)
-	m.Handle("/", dumpContext)
 	m.Handle("/api", dumpContext)
-	m.Handle("/api/go/", dumpContext)
-	m.Handle("/static/", dumpContext)
+	m.Handle("/api/posts", dumpContext)
+	m.Handle("/api/posts/:id", dumpVars(":id"))
+	m.Handle("/api/posts/:id/comments", dumpVars(":id"))
 
 	http.ListenAndServe(":3000", timeLogger(m))
 }
 
 var dumpContext = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, r.Context())
 })
 
@@ -48,6 +50,25 @@ func timeLogger(h http.Handler) http.Handler {
 		start := time.Now()
 		h.ServeHTTP(w, r)
 		log.Println("Elapsed:", time.Since(start))
+	})
+}
+
+func dumpVars(vars ...string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		result := map[string]string{}
+
+		for _, key := range vars {
+			obj := r.Context().Value(key)
+			key = string(key[1:])
+
+			if obj != nil {
+				result[key] = obj.(string)
+			} else {
+				result[key] = "nil"
+			}
+		}
+
+		fmt.Fprint(w, result)
 	})
 }
 ```
