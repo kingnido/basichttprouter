@@ -1,19 +1,11 @@
-package main
+package basichttprouter
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
-	"time"
 )
-
-type Muxer interface {
-	http.Handler
-	Handle(string, http.Handler) error
-	handle([]string, http.Handler) error
-}
 
 type StaticMuxer struct {
 	routes  map[string]Muxer
@@ -76,29 +68,4 @@ func NewStaticMuxer() *StaticMuxer {
 		routes:  map[string]Muxer{},
 		handler: http.NotFoundHandler(),
 	}
-}
-
-func main() {
-	m := NewStaticMuxer()
-
-	m.Handle("", dumpContext)
-	m.Handle("/", dumpContext)
-	m.Handle("/api", dumpContext)
-	m.Handle("/api/go/", dumpContext)
-
-	fmt.Println(m)
-
-	http.ListenAndServe(":3000", timeLogger(m))
-}
-
-var dumpContext = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, r.Context())
-})
-
-func timeLogger(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		h.ServeHTTP(w, r)
-		log.Println("Elapsed:", time.Since(start))
-	})
 }
